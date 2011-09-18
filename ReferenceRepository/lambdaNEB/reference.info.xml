@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<reference_info id="lambdaNEB" last_modified="2011-08-25T11:43:26" version="1.0.0"><reference><description>lambdaNEB</description><num_contigs>1</num_contigs><file>./lambdaNEB.fa</file><max_contig_length>48502</max_contig_length></reference><contigs><contig id="ref000001" length="48502" name="lambda_NEB3011"><digest>a1319ff90e994c8190a4fe6569d0822a</digest><header>lambda_NEB3011</header></contig></contigs></reference_info>

@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<reference_info id="trilink_MeA_1_tc6_circular" last_modified="2011-08-25T11:40:55" version="1.0.0"><reference><description>trilink_MeA_1_tc6_circular</description><num_contigs>1</num_contigs><file>./trilink_MeA_1_tc6_circular.fasta</file><max_contig_length>155</max_contig_length></reference><contigs><contig id="ref000001" length="155" name="trilink_MeA_1_tc6_circular"><digest>dc5fc44c202a51e2dce4a9ab6a2b06e8</digest><header>trilink_MeA_1_tc6_circular</header></contig></contigs></reference_info>
