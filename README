@@ -1,1 +1,2 @@
 
+This repository contains R code for determining modified bases from PacBio DNA sequencing runs. This package depends on the PacificBiosciences/R repository packages, specifically, pbh5 and pbutils. 
