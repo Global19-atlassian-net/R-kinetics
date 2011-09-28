@@ -3,8 +3,9 @@
 ##
 analysis-build:
 	cd Src && R CMD Sweave analysis.Rnw && pdflatex analysis.tex && cp analysis.pdf ../
+	cd Src && R CMD Stange analysis.Rnw
 analysis-clean:
-	cd Src && rm -rf analysis.tex analysis.aux analysis.log Rplots.pdf *~
+	cd Src && rm -rf analysis.tex analysis.aux analysis.log Rplots.pdf analysis.R *~
 
 synthetic-build:
 	cd Data/Synthetic && make all	
