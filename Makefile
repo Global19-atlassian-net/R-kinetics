@@ -4,6 +4,7 @@
 analysis-build:
 	cd Src && R CMD Sweave analysis.Rnw && pdflatex analysis.tex && cp analysis.pdf ../
 analysis-clean:
+	cd Src && rm -rf analysis.tex analysis.aux analysis.log Rplots.pdf *~
 
 synthetic-build:
 	cd Data/Synthetic && make all	
