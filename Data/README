@@ -1,3 +1,7 @@
 
-Due to the size of the data they must be downloaded separately.
+Due to the size of the data they must be downloaded separately. You can run:
+
+make download 
+
+in either this directory or the parent directory to download the appropriate data files. 
 

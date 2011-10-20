@@ -62,3 +62,78 @@ plotIPDForReads <- function(cmpH5, idx, matches = FALSE, range = c(1, 10), whStr
   par(mfrow = c(length(byRead), 1), mar=c(4, 1, 1, 1))
   invisible(lapply(byRead, plotStrip))
 }
+
+makeTopTable <- function(treatmentCmpH5, controlCmpH5, start = 1, end = NA, whichStrand = 0,
+                         getData = getByTemplatePosition, whReference = 1,
+                         test = wilcox.test) {
+  stopifnot(getRefName(treatmentCmpH5, whReference) ==
+            getRefName(controlCmpH5, whReference))
+  end <- if (is.na(end)) getRefLength(treatmentCmpH5, whReference) else end
+  gData <- function(cmpH5) {
+    reads <- getReadsInRange(cmpH5, whReference, start, end)
+    s <- subset(getData(cmpH5, idx = reads),
+           position >= start & position <= end & strand == whichStrand & read == ref)
+    split(s, factor(s$position, start:end))
+  }
+  tDta <- gData(treatmentCmpH5)
+  cDta <- gData(controlCmpH5)
+  dta <- do.call(rbind, mapply(tDta, cDta, FUN = function(tD, cD) {
+    res <- test(tD$elt, cD$elt)
+    data.frame(position = tD$position[1],
+               reference = as.character(tD$ref[1]),
+               read = as.character(tD$read[1]),
+               p.value = res$p.value,
+               statistic = res$statistic,
+               n.control = nrow(cD),
+               n.treatment = nrow(tD),
+               ipd.ratio = mean(tD$elt, na.rm = T)/mean(cD$elt, na.rm = T))
+  }, SIMPLIFY = FALSE))
+  dta$fdr <- p.adjust(dta$p.value, "fdr")
+  dta[order(dta$p.value), ]
+}
+
+trimmedSlog <- function(x, trim = .975, alpha = 1/100) {
+  log(x[x<quantile(x, trim)] + alpha)
+}
+
+##
+## This function demonstrates testing using permutations. The primary
+## problem with this current implementation is performance
+##
+makeTopTablePermutation <- function(treatmentCmpH5, controlCmpH5, start = 1, end = NA, whichStrand = 0,
+                                    getData = getByTemplatePosition, whReference = 1, N = 100, 
+                                    statistic = function(x, y) {
+                                      mean(trimmedSlog(x)) - mean(trimmedSlog(y))
+                                    }) {
+  stopifnot(getRefName(treatmentCmpH5, whReference) ==
+            getRefName(controlCmpH5, whReference))
+  end <- if (is.na(end)) getRefLength(treatmentCmpH5, whReference) else end
+  gData <- function(cmpH5) {
+    reads <- getReadsInRange(cmpH5, whReference, start, end)
+    s <- subset(getData(cmpH5, idx = reads),
+                position >= start & position <= end & strand == whichStrand & read == ref)
+    ## instead of splitting by position we split by read idx. 
+    lapply(split(s, s$idx), function(x) cbind(x$elt, x$position))
+  }
+  tDta <- gData(treatmentCmpH5)
+  cDta <- gData(controlCmpH5)
+  labels <- c(rep("treatment", length(tDta)), rep("control", length(cDta)))
+  jDta <- c(tDta, cDta)
+  
+  computeStatsForPositions <- function(labels) {
+    tD <- do.call(rbind, jDta[labels == "treatment"])
+    cD <- do.call(rbind, jDta[labels == "control"])
+    mapply(split(tD[,1], factor(tD[,2], start:end)),
+           split(cD[,1], factor(cD[,2], start:end)), FUN = function(x, y) {
+             statistic(x, y)
+           })
+  }
+  observed <- computeStatsForPositions(labels)
+  R <- replicate(N, {
+    computeStatsForPositions(sample(labels))
+  })
+  p.approx <- 1 - rowMeans(observed >= R)
+  p.approx <- ifelse(p.approx == 0, 1/(N + 1), p.approx)
+  d <- data.frame(p.approx = p.approx, statistic = observed, position = start:end)
+  d[order(d$p.approx), ]
+}

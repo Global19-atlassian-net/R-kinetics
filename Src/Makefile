@@ -8,5 +8,5 @@ build:
 	R CMD Stangle analysis.Rnw
 
 clean:
-	rm -rf analysis.tex analysis.aux analysis.log Rplots.pdf analysis.R *~
+	rm -rf analysis.tex analysis.aux analysis.log Rplots.pdf analysis.R analysis.pdf .Rhistory plots/* analysis.toc *~
 
