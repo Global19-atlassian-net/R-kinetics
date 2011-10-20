@@ -146,11 +146,13 @@ of R, i.e., R-2-12.
 
 Finally, this document is a ``vignette'', i.e., the code and text is
 all contained in analysis.Rnw, the code extracted can be found in
-analysis.R. To ``run'' this document, the user can perform the following:
+analysis.R. To ``run'' this document, the user can perform the
+following from the top-level directory:
 \begin{verbatim}
- R CMD Sweave analysis.Rnw
+  make analysis-build
 \end{verbatim}
-or more succinctly, ``make''. 
+This will download the data into the Data directory and then run the
+analysis.Rnw document.
 
 \subsection{Experimental Setup}
 This experiment focuses on two different sources of input DNA (1)
@@ -940,7 +942,15 @@ abline(v = start(matches) + 1)
 \end{figure}
 
 \subsection{Next Steps}
-
+As one can see from this document there are a number of enhancements
+that can be conceived of in the two-sample comparison case. First, one
+might prefer a permutation test when comparing the native vs. WGA
+samples. In the ``utils.R'' file there exists an example of such a
+procedure. One might prefer an empirical Bayes approach when the
+number of reads is low. Finally, one might wish to investigate
+whether taking into account the modification signature rather than
+just the individual IPD provides a substantially more powerful test
+than just the individual position. 
 
 \subsection{Session Info}
 <<echo=TRUE>>=
