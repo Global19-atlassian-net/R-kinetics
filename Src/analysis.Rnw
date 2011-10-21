@@ -142,12 +142,10 @@ source("utils.R")
 @ 
 In addition to R package requirements, this document requires a
 system with approximately 3-4 Gigabytes of memory and a recent version
-of R, i.e., R-2-12. 
-
-Finally, this document is a ``vignette'', i.e., the code and text is
-all contained in analysis.Rnw, the code extracted can be found in
-analysis.R. To ``run'' this document, the user can perform the
-following from the top-level directory:
+of R, i.e., R-2-12. Finally, this document is a ``vignette'', i.e.,
+the code and text is all contained in analysis.Rnw, the code extracted
+can be found in analysis.R. To ``run'' this document, the user can
+perform the following from the top-level directory:
 \begin{verbatim}
   make analysis-build
 \end{verbatim}
@@ -171,9 +169,9 @@ For the lambda data set, we have both DAM+ and DAM- preparations as
 well as whole-genome amplifications for both of the DAM+ and DAM-
 preparations. The DAM or DNA methyl-transferase specifically
 methylates the adenine basee of the GATC motif in
-lambda. Additionally, lambda contains methyl-transferases for othe
-motifs, specifically the XXXX motif - this methylation occurs a lower
-frequency (XXX: Citations).
+lambda. Additionally, lambda contains methyl-transferases for other
+motifs - these modified sites we could potentially see when comparing
+the DAM-\_native to the DAM-\_WGA conditions.
 <<echo=FALSE,results=tex>>=
 makeSummaryTable("Lambda", caption = "Summary of lambda datasets used in this document.",
                  label = "tbl:lambda")
@@ -187,9 +185,9 @@ specific positions in the reference sequence. We first examine
 high-level summaries of the data, such as yield, read length, and
 accuracy. We will focus on the Lambda data for some of the major
 exploratory work because it provides a larger number of sequencing
-context to investigate. First, we describe some of the major
-components of the R API which we will use throughout this document to
-analyze the two different modification datasets. 
+contexts to investigate. First, we describe some of the major
+components of the \PL{R} API which we will use throughout this
+document to analyze the two different modification datasets.
 
 \subsection{Working with the Compare H5 File}
 The {\em cmp.h5} file (pronounced comp H5 or compare H5) provides a
@@ -203,19 +201,19 @@ reads to a reference fasta file.
   \caption{{\em cmp.h5 Structure} - A screenshot of the cmp.h5 file
     structure as seen through the ``hdfview'' tool provided by the
     hdfgroup.org. PacBio cmp.h5 files provide a wealth of additional
-    information about the sequencing run. Broadly speaking, HDF5 files can
-    be thought about as a file system for your data -- allowing one to
-    organize both metada and experimental results in consistent structure.
-  }
+    information about the sequencing run. Broadly speaking, HDF5 files
+    can be thought of as a file system for your data -- allowing one
+    to organize both metada and experimental results in consistent
+    structures.  }
 \end{figure}
 <<echo=TRUE>>=
 cmpH5 <- PacBioCmpH5("../Data/Lambda/6mA_dam+_native/data/aligned_reads.cmp.h5") 
 cmpH5
-@
+@ 
 The core of the file is represented by the ``AlnIndex'' and the
 corresponding ``AlnArray'' datasets. Alignments, QualityValues, and
-kinetic data concerning are stored at the ``refGroup/alnGroup'' level
-of the hierarchy, e.g.,
+kinetic data are stored at the ``refGroup/alnGroup'' level of the
+hierarchy, e.g.,
 <<echo=TRUE>>=
 group <- "ref000001/m110818_122604_42141_c100129202555500000315043109121114_s1_p0"
 g <- getH5Group(cmpH5, group)
@@ -250,15 +248,17 @@ lapply(alns, head, n = 2)
 The API provides a large set of functions with the above signature,
 i.e., \RCode{cmpH5} and \RCode{idx}, where \RCode{idx} is an index
 vector which must contain values between 1 and \RCode{nrow(cmpH5)}
-inclusively. These naturally refer to the rows in the
-\RCode{alnIndex(cmpH5)}. In addition to \RCode{getAlignments} other
+inclusive. These naturally refer to the rows in the
+\RCode{alnIndex(cmpH5)}. In addition to \RCode{getAlignments}, other
 useful functions include: \RCode{getIPD}, \RCode{getPulseWidth}, and
 \RCode{getQualityValue}.  
 
 To get more information on the cmp.h5 file format refer to:
 www.pacbiodevnet.com/Learn/Documentation. Also, to get help on the
 pbh5 package, try \RCode{?pbh5}. In the remainder of the document, we
-will typically hide the code to not disrupt the document flow. 
+will typically hide the code to not disrupt the document flow. As
+mentioned above, all of the code can be found in either analysis.Rnw
+or analysis.R
 
 \subsection{Visualizing Kinetic Properties of the System}
 In this section, we visualize pulse width and IPD (inter-pulse
@@ -278,11 +278,9 @@ We want to examine the various sources of variation in the IPD and
 pulse width distributions. In our case, we will compare a function of
 the IPD distribution in a treatment sample (where we believe there to
 be modifications) to that of a control sample (where we have removed
-them) and therefore we can use distribution free tests. However, in
-general we might wish to investigate whether it is possible to
-determine a modification without a control sample and in general by
-knowing nuisance sources of variation we can decrease the size of our
-sample and still have as much power to reject the null.
+them). In general, we might wish to investigate whether it is possible
+to determine a modification without a control sample, however, for the
+remainder of this document we will be focused on the two-sample setup.
 \begin{figure}[H]
   \centering
 <<fig=TRUE, echo=FALSE, results=hide>>=
@@ -304,7 +302,7 @@ plotIPDForReads(cmpH5, idx = 1:100, range = c(40, 50), maxReads = 5, matches = T
 \caption{{\em Trace Cartoon} - Here we plot ``trace'' views directly
   from the cmp.h5 file. This is the same plot as above, however we are
   restricting things to those bases which match. In practice, such a
-  filtering will be too stringent.  }
+  filtering might be too stringent.  }
 \label{fig:ipdcartoon_filtered}
 \end{figure}
 
@@ -481,10 +479,11 @@ head(tmp[order(tmp$elt),])
 @ 
 Here we used the reference context to group the results of the
 function call $f$ and you can see that there are two different
-contexts for the same position -- this occurs because we still
-maintain the orientation of the alignments in terms of read space, so
-for the reference context of 'GGGCG' there are the set of reverse
-strand reads with the context 'CGCCC'.  
+contexts for the same position (the results of $f$ is stored in the
+column with name ``elt'') -- this occurs because we still maintain the
+orientation of the alignments in terms of read space, so for the
+reference context of 'GGGCG' there are the set of reverse strand reads
+with the context 'CGCCC'.
 \begin{figure}[H]
   \centering
 <<fig=TRUE,echo=TRUE>>=
@@ -517,11 +516,12 @@ lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_native")], function(cmp) {
   text(x[w], y[w], names(y)[w], col = "darkblue", cex = 1.3)
 })
 @ 
-\caption{{\em Context-specific Modificationse} -- Here we plot the
+\caption{{\em Context-specific Modifications} -- Here we plot the
   median IPD for 5 based contexts for both the DAM+ and DAM- Lambda
   strains. First, the range of IPDs is quite similar for all
   non-modified motifs, i.e., the motif effect is larger than the the
-  strain effect. 
+  strain effect - this will be clearer when we directly compare the
+  IPD measurements across sample. 
 }\label{fig:contextspecificmods}
 \end{figure}
 
@@ -538,7 +538,8 @@ difference between IPD distributions can be detected, however, certain
 modifications do not have a large effect on the kinetics of the
 polymerase and therefore to detect these smaller effects we need to
 observe the incorporation event many times. Additionally, the effects
-of a modified base might occur around the actual modifications.
+of a modified base might occur around the actual modifications as
+opposed to the exact methylated site.
 
 We can view this as a simple two-sample statistical testing problem
 where IPD measurements obtained from our native sample are compared to
@@ -554,14 +555,12 @@ Before we begin to analyze the modification signal for the Synthetic
 template data, it is important to understand the topology of the
 synthetic molecule. The sequence which we align to is a reverse
 complement of itself with a hairpin at one end and a Smrtbell at the
-other end. It the default pipeline, the Smrbell is found and the reads
+other end. In the default pipeline, the Smrtbell is found and the reads
 are partitioned into individual ``subreads'' based on that adapter
 location. Due to the shortness of the reference sequence which we
 align to there are some ``edge effects'' - we can see this in Figure
 \ref{fig:syntheticcoverage}, where the coverage tails off dramatically
-at the ends of the sequence. We will generally ignore the regions
-towards the end of the reference sequence as they are an artifact of
-the alignment method.
+at the ends of the sequence.
 <<>>=
 cmpH5s <- lapply(Sys.glob("../Data/Synthetic/*/data/aligned_reads.cmp.h5"), PacBioCmpH5)
 names(cmpH5s) <- sapply(cmpH5s, function(h) basename(dirname(dirname(h@fileName))))
@@ -606,7 +605,7 @@ legend("topleft", names(cmpH5s), fill = 1:length(cmpH5s), bg = 'white')
 distributionPlot(c(modifications[["2x_6mA"]][1], 40), "2x_6mA")
 @ 
 \caption{{\em Density at position and Strand} - Here we plot the
-  IPD distribution for both a trully modified site as well as a
+  IPD distribution for both a truly modified site as well as a
   non-modified site. We can see that there is a very large effect on
   the distribution when the modification is a methyl-A.
 }\label{fig:testing1}
@@ -618,13 +617,13 @@ distributionPlot(c(modifications[["2x_6mA"]][1], 40), "2x_6mA")
 distributionPlot(c(modifications[["2x_5mC"]][1], 40), "2x_5mC")
 @ 
 \caption{{\em Density at position and Strand} - Here we plot the
-  IPD distribution for both a trully modified site as well as a
+  IPD distribution for both a truly modified site as well as a
   non-modified site. We can see that the effect on IPD is much smaller
   when the modification is a methyl-C indicating that we will need
-  larger sample sizes to determine a true effect.
+  larger sample sizes to obtain the same precision as a methyl-A.
 }\label{fig:testing2}
 \end{figure}
-As Figures \ref{fig:contextspecificmods}, \ref{fig:testing1} and
+As Figures \ref{fig:contextspecificmods}, \ref{fig:testing1}, and
 \ref{fig:testing2} demonstrate, a natural statistic when comparing the
 IPDs of a control sample to a treatment sample is the mean ratio,
 either logged or unlogged. We sometimes refer to the following
@@ -633,9 +632,9 @@ statistic $S$ as the IPD ratio:
   S = \frac{1/N_{treatment}\sum_{i = 1}^{N_{treatment}} IPD_{i, treatment}}{1/N_{control}\sum_{i = 1}^{N_{control}} IPD_{i, control}}
 \end{equation}
 Here $S$ is specific to a particular reference position, and
-$N_{treatment}$ corresponds to the number of IPD events at position
-$p$ in the treatment sample. In Figure \ref{fig:ipdratios}, we plot
-$S$ as defined above for the four methylated synthetic templates.
+$N_{treatment}$ corresponds to the number of IPD events at that
+position in the treatment sample. In Figure \ref{fig:ipdratios}, we
+plot $S$ as defined above for the four methylated synthetic templates.
 \begin{figure}[H]
   \centering
 <<fig=TRUE, results=hide>>=
@@ -662,7 +661,7 @@ lapply(names(ipdRatios), function(a) {
 \caption{{\em IPD Ratios} - Here we plot the IPD ratio statistic. This
   statistic is a measure of the mean shift in IPD
   distributions. One pertinent aspect of the IPD data that this plot
-  shows is that the effect on the IPD of a methylated base. 
+  shows is the different signatures for a given modification.
 }\label{fig:ipdratios}
 \end{figure}
 
@@ -850,20 +849,17 @@ different testing procedures faceted by coverage and modification
 type. These curves demonstrate the differences in the magnitude of the
 modification effects. It is clear the 6mA is quite easy to detect,
 even at a relatively low level of coverage. However, it is
-equivalently clare that 5mC has a much smaller effect on the IPD
+equivalently clear that 5mC has a much smaller effect on the IPD
 distribution. 
 }
 \end{figure}
-
 As we can see, the differing test procedures do not produce
 dramatically different results. Indeed, we already knew we would
 produce false positives in the case of the 5mC modification as its
 effect on the IPD occurs three bases downstream. In any case, we can
 see that at sufficient coverage our false positive/true positive
-tradeoff is quite good for 5hmC, 4mC, and 6mA modifications is quite
-good. Additionally, as we saw earlier, taking into account position,
-strand, and context variability will be quite relevant to obtaining
-more precision and therefore lower coverage requirements.
+tradeoff is quite good for 5hmC, 4mC, and 6mA
+modifications.
 
 \subsection{Statistical Testing in Lambda}
 <<echo=FALSE>>=
