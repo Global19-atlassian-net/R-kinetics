@@ -4,6 +4,7 @@
 all : build
 
 build:
+	mkdir -p plots
 	R CMD Sweave analysis.Rnw && pdflatex analysis.tex && pdflatex analysis.tex && pdflatex analysis.tex
 	R CMD Stangle analysis.Rnw
 

@@ -166,7 +166,7 @@ execute this document depends on the afformentioned packages.
 
 <<echo=TRUE, results=hide>>=
 require(pbh5)
-require(pbls)
+require(pbutils)
 require(xtable)
 require(ggplot2)
 source("utils.R")
