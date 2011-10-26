@@ -109,7 +109,11 @@ makeTopTable <- function(treatmentCmpH5, controlCmpH5, start = 1, end = NA, whic
   tDta <- gData(treatmentCmpH5)
   cDta <- gData(controlCmpH5)
   dta <- do.call(rbind, mapply(tDta, cDta, FUN = function(tD, cD) {
-    res <- test(tD$elt, cD$elt)
+    res <- if (length(tD$elt) <= 3 || length(cD$elt) <= 3) {
+      list(p.value = NA, statistic = NA)
+    } else {
+      test(tD$elt, cD$elt)
+    }
     data.frame(position = tD$position[1],
                reference = as.character(tD$ref[1]),
                read = as.character(tD$read[1]),
@@ -121,6 +125,78 @@ makeTopTable <- function(treatmentCmpH5, controlCmpH5, start = 1, end = NA, whic
   }, SIMPLIFY = FALSE))
   dta$fdr <- p.adjust(dta$p.value, "fdr")
   dta[order(dta$p.value), ]
+}
+
+##
+## Provide a simple wrapper for shell scripts to call to generate a
+## CSV.
+##
+makeTopTableShellWrapper <- function(treatmentCmpH5File, controlCmpH5File,
+                                     test = wilcox.test) {
+  require(pbh5)
+  collapse <- function (x) {
+    stopifnot(is.list(x))
+    if (!is.null(dim(x[[1]]))) {
+        lf <- nrow
+        cf <- rbind
+        on <- colnames(x[[1]])
+    }
+    else {
+        lf <- length
+        cf <- c
+        on <- "value"
+    }
+    nx <- rep(names(x), sapply(x, lf))
+    dx <- as.data.frame(do.call(cf, x), row.names = NULL)
+    i <- 1
+    while (paste("L", i, sep = "") %in% on) {
+        i <- i + 1
+    }
+    ncname <- paste("L", i, sep = "")
+    dx[[ncname]] <- nx
+    colnames(dx) <- c(on, ncname)
+    rownames(dx) <- NULL
+    return(dx)
+  }
+  
+  treatmentCmpH5 <- PacBioCmpH5(treatmentCmpH5File)
+  controlCmpH5 <- PacBioCmpH5(controlCmpH5File)
+
+  ## make sure that when you walk through these references that you do
+  ## so in lockstep.
+  stopifnot(all(refGroup(treatmentCmpH5)$FullName ==
+                refGroup(controlCmpH5)$FullName))
+  refIdxs <- refGroup(treatmentCmpH5)$ID
+  names(refIdxs) <- refGroup(treatmentCmpH5)$FullName
+  strands <- c("+" = 0, "-" = 1)
+  
+  d <- collapse(lapply(refIdxs, function(whReference) {
+    cat("Processing reference:", getRefFullName(treatmentCmpH5, whReference), "\n")
+    refLength <- getRefLength(treatmentCmpH5, whReference)
+    bins <- seq(1, refLength, by = floor(refLength/20))
+    bins <- if (bins[length(bins)] < refLength) c(bins, refLength) else bins
+    z <- do.call(rbind, lapply(2:length(bins), function(k) {
+      start <- bins[k-1]
+      end <- bins[k] - 1
+      cat("\tProcessing bin: ", start, ", ", end, "\n", sep = "")
+      collapse(lapply(strands, function(strand) {
+        cat("\t\tProcessing strand:", strand, "\n")
+        makeTopTable(treatmentCmpH5, controlCmpH5, start = start, end = end,
+                     whichStrand = strand, whReference = whReference, test = test)
+      }))
+    }))
+    rownames(z) <- NULL
+    return(z)
+  }))
+  cn <- colnames(d)
+  cn <- gsub("L1", "strand", cn)
+  cn <- gsub("L2", "reference", cn)
+  colnames(d) <- cn
+  d <- d[order(d$position, d$strand),]
+
+  ## redo the FDR based on the whole set. 
+  d$fdr <- p.adjust(d$p.value, "fdr")
+  return(d)
 }
 
 trimmedSlog <- function(x, trim = .975, alpha = 1/100) {

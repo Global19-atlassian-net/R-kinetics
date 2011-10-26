@@ -109,13 +109,13 @@
 \tableofcontents
 \begin{abstract}
   This documents describes a programing interface to Pacific
-  Biosciences cmp.h5 files. These files provide additional data beyond
-  basecalls and quality values obtained during a sequencing run. These
-  data can be used to discover base modifications, e.g., DNA
-  methylation events. In addition to demonstrating the detection of
-  DNA methylation in a two-sample statistical testing context, we
-  present an \PL{R} API for generally extracting data from PacBio HDF5
-  files. 
+  Biosciences compare H5 files. These files provide additional data
+  beyond basecalls and quality values obtained during a sequencing
+  run. The data contained in compare H5 files can be used to discover
+  base modifications, e.g., DNA methylation events. In addition to
+  demonstrating the detection of DNA methylation in a two-sample
+  statistical testing context, we present an \PL{R} API for extracting
+  data from PacBio HDF5 files.
 \end{abstract}
 
 \section{Introduction}
@@ -125,45 +125,42 @@ interactions, DNA damage and DNA repair. Single-Molecule Real-Time
 (SMRT) sequencing has the potential to revolutionize the study of base
 modifications through direct detection on unamplified source material.
 Traditionally, it has been a challenge to study the wide variety of
-modifications that are seen in nature.  Most high throughput
-techniques focus on cytosine methylation -- made accessible through
-bisulfite treatment when sequencing or PCR techniques are used to
-detect the methylation at a single-base resolution. SMRT-sequencing,
-in contrast, does not require genetic alterations to the source
-material in order to view base modifications. Instead, measurements of
-the kinetics of base addition are made during the normal course of
-sequencing. These kinetic measurements present characteristic patterns
-in response to a wide variety of base modifications.  As a result of
-this relatively simple mechanism to detect base modifications, it is
-now possible to study more than just 5-methylcytosine in a
-high-throughput fashion.  Bacterial modifications such as
-6-methyladenine, or more recently re-discovered modifications such as
-5-hydroxymethylcytosine, are accessible to study using a single
-sequencing method -- and even a single sequencing run -- on the PacBio
-RS. As the technology advances, direct detection of RNA modifications
-will also become possible. As our understanding of kinetic information
-grows, the analysis of base modifications using SMRT technology will
-continue to become easier and faster, making accessible a rich new
-frontier of scientific study.
+modifications that are seen in nature. Most high throughput techniques
+focus on 5-methylcytosine -- made accessible through bisulfite
+treatment and subsequent amplification techniques to detect this
+methylation at single-base resolution. In contrast, SMRT-sequencing
+does not require genetic alterations to the source material in order
+to view base modifications. Instead, measurements of the kinetics of
+base additions are made during the normal course of sequencing. These
+kinetic measurements present characteristic patterns in response to a
+wide variety of base modifications.  As a result of this relatively
+simple mechanism to detect base modifications, it is now possible to
+study more than just 5-methylcytosine in a high-throughput fashion.
+Bacterial modifications such as 6-methyladenine, 4-methylcytosine, or
+5-hydroxymethylcytosine are accessible to study using a single
+sequencing method on the PacBio RS. As our understanding of kinetic
+information grows, the analysis of base modifications using SMRT
+technology will continue to become easier and faster, making
+accessible a rich new frontier of scientific study.
 
-In this document we attempt to demonstrate how to perform DNA
-modification detection using the suite of R packages developed and
-used at Pacific Biosciences. These APIs provide the developer with
-low-level access to all information collected during a sequencing
-run. This document attempts to serve two purposes (1) to demonstrate
-the use of the \RPackage{pbh5} R package to access low-level data
-produced during a SMRT-sequencing run and (2) to provide a starting
-point for users to conduct their own kinetic analysis.
+In this document we demonstrate how to perform DNA modification
+detection using the suite of R packages developed and used at Pacific
+Biosciences. These APIs provide the developer with low-level access to
+all information collected during a sequencing run. This document
+serves two purposes (1) to demonstrate the use of the \RPackage{pbh5}
+R package to access low-level data produced during a SMRT-sequencing
+run and (2) to provide a starting point for users to conduct their own
+kinetic analysis.
 
 \subsection{R Packages/System Requirements}
 In this analysis we will make heavey use of the \RPackage{pbh5} and
 \RPackage{pbutils} R packages. In addition, the \RPackage{pbh5}
 package depends on the \RPackage{h5r} package. Finally, we will also
 make use of the \RPackage{ggplot2} and \RPackage{xtable} packages
-available on CRAN. All of the analysis conducted here can be performed
-using the \RPackage{pbh5} package exclusively, however, the code to
-execute this document depends on the afformentioned packages.
-
+available on CRAN\footnote{http://www.r-project.org}. All of the
+analysis conducted here can be performed using the \RPackage{pbh5}
+package exclusively, however, the code to execute this document
+depends on the aforementioned packages.
 <<echo=TRUE, results=hide>>=
 require(pbh5)
 require(pbutils)
@@ -180,36 +177,36 @@ perform the following from the top-level directory:
 \begin{verbatim}
   make analysis-build
 \end{verbatim}
-This will download the data into the Data directory and then run the
-analysis.Rnw document.
+This will download the data (cmp.h5 files) into the Data directory and
+then run the analysis.Rnw document.
 
 \subsection{Experimental Setup}
-This experiment focuses on two different sources of input DNA (1)
-Synthetically methylated DNA with a few site-specific modifications
-per template and (2) DNA library data from lambda phage. For the
-synthetically modified data, we have a 5 identical (from a nucleotide
-sequence perspective) templates. Four of these templates have
-modifications at particular sites. One is a control template which
-will be used in comparison to each treatment template.
+Example sequencing data from the PacBio RS, subjected to the kinetic
+analysis described below, comprise two different sources of input DNA
+(1) Synthetically methylated DNA with a few site-specific
+modifications per template and (2) DNA library data from lambda
+phage. For the synthetically modified data, we have a 5 identical
+(from a nucleotide sequence perspective) templates, of which four
+templates have DNA base modifications at particular sites. One is a
+control template which will be used in comparison to each treatment
+template.
 <<echo=FALSE,results=tex>>=
 makeSummaryTable("Synthetic", caption = "Summary of synthetically methylated datasets used in this document.",
                  label = "tbl:synthetic")
 @ 
-
-For the lambda data set, we have both DAM+ and DAM- preparations as
-well as whole-genome amplifications for both of the DAM+ and DAM-
-preparations. The DAM or DNA methyl-transferase specifically
-methylates the adenine basee of the GATC motif in
-lambda. Additionally, lambda contains methyl-transferases for other
-motifs - these modified sites we could potentially see when comparing
-the DAM-\_native to the DAM-\_WGA conditions.
+For the lambda data set, both DAM+ and DAM- preparations as well as
+whole-genome amplifications for both the DAM+ and DAM- preparations
+(either containing or lacking DAM methylase, respectively) are
+sequenced. The DAM or DNA methyl-transferase specifically methylates
+the adenine base of the GATC motif in DNA. Additionally, the lambda
+DNA sample contains methyl-transferases for other motifs.
 <<echo=FALSE,results=tex>>=
 makeSummaryTable("Lambda", caption = "Summary of lambda datasets used in this document.",
                  label = "tbl:lambda")
 @ 
 
 \section{Exploring the Data}
-As described above, SMRT-Sequecing provides a rich set of information
+As described above, SMRT-sequencing provides a rich set of information
 beyond that of traditional sequencing platforms. Specifically, here we
 focus on information about the kinetic behavior of the polymerase at
 specific positions in the reference sequence. We first examine
@@ -473,7 +470,7 @@ show(ggplot(byPositionAndStrandPW,
 \end{figure}
 \setkeys{Gin}{width=0.8\textwidth}
 
-\subsection{Context-specific Efffects}
+\subsection{Context-specific Effects}
 Finally, we investigate the effect of sequence context on IPD and
 pulse width distributions. Alignment-level data from a cmp.h5 file is
 always stored with respect to the bases being incorporated. Therefore,
@@ -892,7 +889,7 @@ see that at sufficient coverage our false positive/true positive
 tradeoff is quite good for 5hmC, 4mC, and 6mA
 modifications.
 
-\subsection{Statistical Testing in Lambda}
+\subsection{Statistical Testing in Lambda DNA}
 <<echo=FALSE>>=
 cmpH5s <- lapply(Sys.glob("../Data/Lambda/*/data/aligned_reads.cmp.h5"), PacBioCmpH5)
 names(cmpH5s) <- sapply(cmpH5s, function(h) basename(dirname(dirname(h@fileName))))
