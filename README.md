@@ -1,5 +1,5 @@
-R-kinetcs
-=========
+The R-kinetics Project
+======================
 
 This project provides a vignette that describes how to perform kinetic
 analyses using the R suite of tools provided by Pacific
