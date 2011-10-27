@@ -44,6 +44,7 @@
 \usepackage{amsfonts}
 \usepackage{float}
 \usepackage{subfig}
+\usepackage{hyperref}
 %%%%%%%%%%%%%%%%%%%%%%%% Adapted from Sweave %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \DefineVerbatimEnvironment{Rcode}{Verbatim}{fontshape=sl, frame=single, 
   framesep=2mm, fontsize=\small, baselinestretch=.5}
@@ -101,7 +102,7 @@
 \bibliographystyle{plainnat}
 
 %%%%%%%%%%%%%%%%%%%%%%% opening %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{DNA-Modification Detection with SMRT-Sequencing using R}
+\title{DNA-Modification Detection with SMRT-Sequencing Using R}
 \author{Pacific Biosciences}
 
 \begin{document}
@@ -153,7 +154,7 @@ run and (2) to provide a starting point for users to conduct their own
 kinetic analysis.
 
 \subsection{R Packages/System Requirements}
-In this analysis we will make heavey use of the \RPackage{pbh5} and
+In this analysis we will make heavy use of the \RPackage{pbh5} and
 \RPackage{pbutils} R packages. In addition, the \RPackage{pbh5}
 package depends on the \RPackage{h5r} package. Finally, we will also
 make use of the \RPackage{ggplot2} and \RPackage{xtable} packages
@@ -170,7 +171,7 @@ source("utils.R")
 @ 
 In addition to R package requirements, this document requires a
 system with approximately 3-4 Gigabytes of memory and a recent version
-of R, i.e., R-2-12. Finally, this document is a ``vignette'', i.e.,
+of R, i.e., $\geq$R-2-11. Finally, this document is a ``vignette'', i.e.,
 the code and text is all contained in analysis.Rnw, the code extracted
 can be found in analysis.R. To ``run'' this document, the user can
 perform the following from the top-level directory:
@@ -225,7 +226,7 @@ reference sequence. The cmp.h5 file may contain one or more movies
 reads to a reference fasta file.
 \begin{figure}
   \centering
-  \includegraphics{cmpH5HDF5View}
+  \includegraphics{extras/cmpH5HDF5View}
   \caption{{\em cmp.h5 Structure} - A screenshot of the cmp.h5 file
     structure as seen through the ``hdfview'' tool provided by the
     hdfgroup.org. PacBio cmp.h5 files provide a wealth of additional
@@ -243,20 +244,20 @@ corresponding ``AlnArray'' datasets. Alignments, QualityValues, and
 kinetic data are stored at the ``refGroup/alnGroup'' level of the
 hierarchy, e.g.,
 <<echo=TRUE>>=
-group <- "ref000001/m110818_122604_42141_c100129202555500000315043109121114_s1_p0"
+group <- "/ref000001/m110818_122604_42141_c100129202555500000315043109121114_s1_p0"
 g <- getH5Group(cmpH5, group)
 ls(g)
 @ 
-Each of these datasets contain all of the alignment related data for a
-given ``alignment group'' which tends to be a movie. The alignments
+Each of these datasets contain all of the alignment related data for
+a given ``alignment group'' which tends to be a movie. The alignments
 are packed together in a compact format and the ``AlnIndex'' contains
 the relevant information on how to extract a particular alignment. The
-incredibly long ``basename'' portion of the path represents the movie
-name, whereas the ``dirname'' portion represents the reference
-sequence. The mapping between the canonical ``ref000001'' and the name
-in the fasta file can be found using the \RFunction{refGroup}
-function. For our work, the most pertinent datasets are: AlnArray, IPD
-(inter-pulse duration), and PulseWidth.
+long ``basename'' portion of the path represents the movie name,
+whereas the ``dirname'' portion represents the reference sequence. The
+mapping between the canonical ``ref000001'' and the name in the fasta
+file can be found using the \RFunction{refGroup} function. For our
+work, the most pertinent datasets are: AlnArray, IPD (inter-pulse
+duration), and PulseWidth.
 
 As mentioned above, all of the alignments in the file are stored in a
 global alignment index. In addition to providing summary statisitics
@@ -282,56 +283,41 @@ useful functions include: \RCode{getIPD}, \RCode{getPulseWidth}, and
 \RCode{getQualityValue}.  
 
 To get more information on the cmp.h5 file format refer to:
-www.pacbiodevnet.com/Learn/Documentation. Also, to get help on the
-pbh5 package, try \RCode{?pbh5}. In the remainder of the document, we
-will typically hide the code to not disrupt the document flow. As
-mentioned above, all of the code can be found in either analysis.Rnw
-or analysis.R
+\myurlshort{www.pacbiodevnet.com/Learn/Documentation}{PacBio
+  DevNet}. Also, to get help on the pbh5 package, try
+\RCode{?pbh5}. In the remainder of the document, we will typically
+hide the code to not disrupt the document flow. As mentioned above,
+all of the code can be found in either analysis.Rnw or analysis.R
 
 \subsection{Visualizing Kinetic Properties of the System}
 In this section, we visualize pulse width and IPD (inter-pulse
 duration) distributions. These two, especially IPD, represent the
-primary source of data informing possible base modifications. In
-Figures \ref{fig:ipdcartoon_unfiltered} and
-\ref{fig:ipdcartoon_filtered}, we have plotted a schematic of the
-trace signal. In this figure all pulses have the same magnitude for
-simplicity, and indeed we will focus about the distributions of
-durations for incorporation (pulse width) and translocation (IPD). In
-the aforementioned figures, we have drawn a red arrow to indicate the
-IPD at a position of interest. Each read covering a region gives us
-information about the incorporation events. We can compare that to a
-control sample where we are certain there are no modifications.
+primary source of data informing about possible base modifications. In
+Figures \ref{fig:ipdcartoon_unfiltered}, a schematic of the trace
+signal is plotted. In this figure all pulses have the same magnitude
+for simplicity, and indeed we will focus on the distributions of
+durations of incorporation (pulse width) and between incorporation
+events (IPD). In the aforementioned figures, we have drawn a red arrow
+to indicate the IPD at a position of interest. Each read covering a
+region gives us information about the incorporation events. We can
+compare that to a control sample where no modifications are present.
 
 We want to examine the various sources of variation in the IPD and
 pulse width distributions. In our case, we will compare a function of
 the IPD distribution in a treatment sample (where we believe there to
 be modifications) to that of a control sample (where we have removed
-them). In general, we might wish to investigate whether it is possible
-to determine a modification without a control sample, however, for the
-remainder of this document we will be focused on the two-sample setup.
+them). 
 \begin{figure}[H]
   \centering
 <<fig=TRUE, echo=FALSE, results=hide>>=
 plotIPDForReads(cmpH5, idx = 1:100, range = c(40, 50), maxReads = 5, matches = FALSE)
 @ 
-\caption{{\em Trace Cartoon} - Here we plot ``trace'' views directly
-  from the cmp.h5 file. When we allow the possibility of
-  insertions/deletions/mismatches it is more complicated to ensure
-  that you are viewing a proper incorporation event.  }
+\caption{{\em Trace Schematic} - Here we plot ``trace'' views directly
+  from the cmp.h5 file. The presence of random
+  insertion/deletion/mismatch errors adds additional complexity to
+  correctly assign kinetic parameters to a particular incorporation
+  event.  }
 \label{fig:ipdcartoon_unfiltered}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-<<fig=TRUE, echo=FALSE, results=hide>>=
-plotIPDForReads(cmpH5, idx = 1:100, range = c(40, 50), maxReads = 5, matches = TRUE)
-@ 
-
-\caption{{\em Trace Cartoon} - Here we plot ``trace'' views directly
-  from the cmp.h5 file. This is the same plot as above, however we are
-  restricting things to those bases which match. In practice, such a
-  filtering might be too stringent.  }
-\label{fig:ipdcartoon_filtered}
 \end{figure}
 
 <<LoadInCmpH5s, echo=FALSE>>=
@@ -362,8 +348,8 @@ plotDensity(lapply(cmpH5s, function(cmpH5) {
     the global IPD and PulseWidth distributions. This distribution is
     a mix of incorporations of the 4 nucleotides. Both IPD and
     PulseWidth are currently stored in the file in seconds rather than
-    frames. The spikes occur because in fact the distribution is not
-    continuous.  }
+    frames. The spikes occur because of the finite frame rate of the detector. 
+  }
 \end{figure}
 
 \begin{figure}[H]
@@ -396,9 +382,9 @@ show(ggplot(melt(l), aes(x = L2, y = value, color = L1)) + geom_boxplot(outlier.
 }
 \caption{{\em IPD and PulseWidth By Base} - Here we plot the IPD and
   PulseWidth distributions stratified by the base being
-  incorporated. We see that there is a base effect on IPD, i.e., which
-  base we are incorporating changes the kinetic behavior of the
-  enzyme.  }
+  incorporated. There is a base effect on IPD, i.e., which base is
+  incorporated changes the kinetic behavior of the enzyme.  
+}
 \end{figure}
 \setkeys{Gin}{width=0.8\textwidth}
 
@@ -413,13 +399,12 @@ head(getByTemplatePosition(cmpH5, idx = 1:2, f = getIPD))
 @ 
 Additionally, there are a number of high-level data access functions
 related to retrieving the information in the cmp.h5 file by position
-and context. As mentioned before, these functions take a vector of
-indices which refer to the reads in the alignment index to be used,
-e.g.,
+and context. Again, these functions take a vector of indices which
+refer to the reads in the alignment index to be used, e.g.,
 <<echo=TRUE>>=
 head(makeContextDataTable(cmpH5, idx = 1:2, up = 2, down = 2))
 @ 
-Another useful function for summarizing things by context is:
+Another useful function for summarizing data by context is:
 <<echo=TRUE>>=
 s <- summarizeByContext(cmpH5, idx = 1:100, up = 1, down = 1, statF = getPulseWidth)
 head(s)
@@ -430,7 +415,7 @@ range along the genome and then retrieves the results of $f$ for those
 reads. An important point to notice is that the
 \RFunction{getReadsInRange} function returns any read that overlaps
 either the start or the end of the range. Therefore, portions of reads
-will not be within $[s, e]$, hence the subset below.
+will not be within $[\textrm{start}, \textrm{end}]$, hence the subset below.
 <<echo=TRUE>>=
 getByPositionAndStrand <- function(f = getIPD, s = 20000, e = 20025) {
   pbutils::collapse(lapply(cmpH5s, function(cmpH5) {
@@ -465,14 +450,14 @@ show(ggplot(byPositionAndStrandPW,
 }
   \caption{{\em IPD and PulseWidth by Strand and Position} - Here we plot the median of the IPD
     distribution conditioned on both strand and position. We can see the
-    presence of a very strong position and strand effect.
+    presence of strong position and strand effects.
   }
 \end{figure}
 \setkeys{Gin}{width=0.8\textwidth}
 
 \subsection{Context-specific Effects}
 Finally, we investigate the effect of sequence context on IPD and
-pulse width distributions. Alignment-level data from a cmp.h5 file is
+pulse width distributions. Alignment-level data from a cmp.h5 file are
 always stored with respect to the bases being incorporated. Therefore,
 when one retrieves an alignment from the cmp.h5 file, if that
 alignment is labeled as a reverse strand alignment:
@@ -483,7 +468,7 @@ importance of this representation is that we always store the data
 the bases are incorporated. 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=2.5in,height=2.5in]{Pol2Graphic}
+  \includegraphics[width=2.5in,height=2.5in]{extras/Pol2Graphic}
   \caption{{\em GATC Cartoon} - A cartoon depicting the incorporation
     of ``T'' which will be ``delayed'' when the complement A base is
     methylated. The ``T'' base is what is stored in the ``AlnArray''
@@ -521,6 +506,7 @@ par(cex.axis = .65)
 boxplot(split(contextTable$elt, contextTable$context), ylim = c(0, .5), las = 2, 
         main = "Context-specific IPD distributions", ylab = "IPD", outline = FALSE, 
         col = rep(1:4, each = 4))
+legend("topleft", c("A","C","G","T"), fill = 1:4, bg = "white")
 @ 
 \caption{{\em IPD by Context} - Plots of IPD by context. We can see
   that the IPD distribution depends on context. Here the boxplots have
@@ -534,14 +520,17 @@ GATC motif is mostly modified.
   \centering
 <<fig=TRUE, echo=FALSE, results=hide>>=
 par(mfrow=c(2,1), mar = c(3, 5, 1, 1))
+## This is so that the points don't collide on the plot, somewhat lazy.
+set.seed(10)
 lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_native")], function(cmp) {
-  tmp <- associateWithContext(cmp, idx = sample(1:nrow(cmp), size = 5000), 
+  tmp <- associateWithContext(cmp, idx = sort(sample(1:nrow(cmp), size = 5000)), 
                               f = getIPD, collapse = T, useReference = T, up = 2, down = 2)
   contextMedians <- tapply(tmp$elt, tmp$context, median, na.rm = T)
   plot(x <- 1:length(contextMedians), y <- contextMedians, pch = 16, 
-       ylim = c(0, 1), xlab = "Context", xaxt = 'n', ylab = "Median")
+       ylim = c(0, .85), xlab = "Context", xaxt = 'n', ylab = "Median")
   w <- grep("^GATC", names(y))
-  text(x[w], y[w], names(y)[w], col = "darkblue", cex = 1.3)
+  text(x[w], y[w], names(y)[w], col = c("darkblue", "darkred", "darkgreen", "orange"), 
+       cex = 1, pos = c(2,4,2,4))
 })
 @ 
 \caption{{\em Context-specific Modifications} -- Here we plot the
@@ -549,29 +538,33 @@ lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_native")], function(cmp) {
   strains. First, the range of IPDs is quite similar for all
   non-modified motifs, i.e., the motif effect is larger than the the
   strain effect - this will be clearer when we directly compare the
-  IPD measurements across sample. 
+  IPD measurements across samples. 
 }\label{fig:contextspecificmods}
 \end{figure}
 
 
 \section{Statistical Testing}
 In this section we focus on two-sample statistical tests comparing the
-IPD distribution in a control sample to a treatment. Each particular
-DNA modification has a different signature at or around the modified
-base and more sophisticated methods will take that into account. In
-this section, we will first focus on the Synthetic data sets where the
+IPD distribution in a sample containing DNA base modifications to a
+control sample. Each particular DNA modification has a different
+kinetic signature at and around the modified base, and more
+sophisticated methods will take that into account in the future. In
+this section, we will first focus on the synthetic data sets where the
 modified positions are known. Here, we will look at detection as a
 function of coverage. In general, with sufficient coverage the
 difference between IPD distributions can be detected, however, certain
 modifications do not have a large effect on the kinetics of the
 polymerase and therefore to detect these smaller effects we need to
-observe the incorporation event many times. Additionally, the effects
-of a modified base might occur around the actual modifications as
-opposed to the exact methylated site.
+observe the incorporation event more times, i.e., more sequencing fold
+coverage is required. Additionally, the effects of a modified base
+might occur around the actual modifications as opposed to the exact
+methylated site, due to the contact the DNA polymerase makes with the
+DNA template over an extended region surrounding the modified base
+position.
 
 We can view this as a simple two-sample statistical testing problem
-where IPD measurements obtained from our native sample are compared to
-IPD measurements obtained from an unmodified sample. As in many
+where IPD measurements obtained from the native sample are compared to
+IPD measurements obtained from a control sample. As in many
 high-throughput sequencing experiments, some of the canonical
 assumptions, e.g., independence, normality, etc. might not be
 satisfied. In addition, one necessarily cares about multiple testing
@@ -579,25 +572,21 @@ as there are many sites to test. At the end of this section we will
 discuss natural enhancements to the simple procedures demonstrated
 here.
 
-Before we begin to analyze the modification signal for the Synthetic
+Before we begin to analyze the modification signal for the synthetic
 template data, it is important to understand the topology of the
 synthetic molecule. The sequence which we align to is a reverse
-complement of itself with a hairpin at one end and a Smrtbell at the
-other end. In the default pipeline, the Smrtbell is found and the reads
-are partitioned into individual ``subreads'' based on that adapter
-location. Due to the shortness of the reference sequence which we
-align to there are some ``edge effects'' - we can see this in Figure
-\ref{fig:syntheticcoverage}, where the coverage tails off dramatically
-at the ends of the sequence.
+complement of itself with a hairpin at one end and a SMRTbell template
+at the other end. In the default pipeline, the SMRTbell template is
+found and the reads are partitioned into individual ``subreads'' based
+on that adapter location. 
 <<>>=
 cmpH5s <- lapply(Sys.glob("../Data/Synthetic/*/data/aligned_reads.cmp.h5"), PacBioCmpH5)
 names(cmpH5s) <- sapply(cmpH5s, function(h) basename(dirname(dirname(h@fileName))))
-modifications <- list("2x_5mC"  = c(55,74),
-                      "2x_5hmC" = c(51,74),
-                      "2x_4mC"  = c(55,74),
-                      "2x_6mA"  = c(57,68,112,123))
-syntheticStart <- 20
-syntheticEnd <- 150
+offset <- 14
+modifications <- list("2x_5mC"  = c(55,74) - offset,
+                      "2x_5hmC" = c(51,74) - offset,
+                      "2x_4mC"  = c(55,74) - offset,
+                      "2x_6mA"  = c(57,68,112,123) - offset)
 
 distributionPlot <- function(positions, nm) {
   getIPDForPosition <- function(p) {
@@ -610,8 +599,10 @@ distributionPlot <- function(positions, nm) {
   lapply(positions, function(z) {
     title <- paste("Position:", z)
     lst <- lapply(getIPDForPosition(z), function(k) log10(k+1/76))
-    plotDensity(lst, legend = TRUE, main = title, xlab = "Started log10 of IPD")
+    plotDensity(lst, main = title, xlab = "Started log10 of IPD")
+    legend("topright", names(lst), fill = 1:length(lst), cex = .75)
     qqPairs(lst, main = title)
+    lst
   })
 }
 @
@@ -632,7 +623,7 @@ legend("topleft", names(cmpH5s), fill = 1:length(cmpH5s), bg = 'white')
 <<fig=TRUE,results=hide>>=
 distributionPlot(c(modifications[["2x_6mA"]][1], 40), "2x_6mA")
 @ 
-\caption{{\em Density at position and Strand} - Here we plot the
+\caption{{\em Density at Position and Strand} - Here we plot the
   IPD distribution for both a truly modified site as well as a
   non-modified site. We can see that there is a very large effect on
   the distribution when the modification is a methyl-A.
@@ -644,25 +635,26 @@ distributionPlot(c(modifications[["2x_6mA"]][1], 40), "2x_6mA")
 <<fig=TRUE,results=hide>>=
 distributionPlot(c(modifications[["2x_5mC"]][1], 40), "2x_5mC")
 @ 
-\caption{{\em Density at position and Strand} - Here we plot the
+\caption{{\em Density at Position and Strand} - Here we plot the
   IPD distribution for both a truly modified site as well as a
   non-modified site. We can see that the effect on IPD is much smaller
-  when the modification is a methyl-C indicating that we will need
+  when the modification is a 5-methylcytosine indicating that we will need
   larger sample sizes to obtain the same precision as a methyl-A.
 }\label{fig:testing2}
 \end{figure}
 As Figures \ref{fig:contextspecificmods}, \ref{fig:testing1}, and
 \ref{fig:testing2} demonstrate, a natural statistic when comparing the
-IPDs of a control sample to a treatment sample is the mean ratio,
-either logged or unlogged. We sometimes refer to the following
-statistic $S$ as the IPD ratio:
+IPDs of a control sample to a native or modified sample is the mean ratio,
+either logged or unlogged. We refer to the following statistic $S$ as
+the IPD ratio:
 \begin{equation}
-  S = \frac{1/N_{treatment}\sum_{i = 1}^{N_{treatment}} IPD_{i, treatment}}{1/N_{control}\sum_{i = 1}^{N_{control}} IPD_{i, control}}
+  S = \frac{1/N_{native}\sum_{i = 1}^{N_{native}} IPD_{i, native}}{1/N_{control}\sum_{i = 1}^{N_{control}} IPD_{i, control}}
 \end{equation}
 Here $S$ is specific to a particular reference position, and
-$N_{treatment}$ corresponds to the number of IPD events at that
-position in the treatment sample. In Figure \ref{fig:ipdratios}, we
-plot $S$ as defined above for the four methylated synthetic templates.
+$N_{native}$ corresponds to the number of IPD events at that position
+in the native sample. In Figure \ref{fig:ipdratios}, we plot $S$ as
+defined above for each of the four methylated synthetic templates
+vs. control.
 \begin{figure}[H]
   \centering
 <<fig=TRUE, results=hide>>=
@@ -680,33 +672,34 @@ getIPDRatios <- function() {
 ipdRatios <- getIPDRatios()
 par(mfrow=c(4,1), mar = c(4, 4, 3, 1))
 lapply(names(ipdRatios), function(a) {
-  plot(ipdRatios[[a]], pch = 16, xlab = "Position",  ylim = c(0, 8), ylab = "IPD Ratio", main = a, 
-       xlim = c(syntheticStart, syntheticEnd))
+  plot(ipdRatios[[a]], pch = 16, xlab = "Position",  ylim = c(0, 8), ylab = "IPD Ratio", main = a )
   abline(v = modifications[[a]], col = "grey", lwd = 4)
   points(ipdRatios[[a]], pch = 16)
 })
 @ 
 \caption{{\em IPD Ratios} - Here we plot the IPD ratio statistic. This
-  statistic is a measure of the mean shift in IPD
-  distributions. One pertinent aspect of the IPD data that this plot
-  shows is the different signatures for a given modification.
-}\label{fig:ipdratios}
+  statistic is a measure of the mean shift in IPD distributions. One
+  pertinent aspect of the IPD data that this plot shows is the
+  different signatures for a given modification, with 4-mC having
+  characteristic signals at the modified position, 5-mC and 5-hmC at 2
+  and 6 bases downstream of the position, and 6-mA at the modified
+  position and 5 bases downstream.  }\label{fig:ipdratios}
 \end{figure}
 
 \subsection{Testing by Coverage}
 Naturally, we generally want more than just an IPD ratio, or measure
-of the difference between two distrubtions, we want to know whether
+of the difference between two distributions, we want to know whether
 that difference would have been likely to be observed by chance. As is
 clear from Figure \ref{fig:ipdratios}, the different modifications
-have dramatically different signals and effect sizes. Below we
-investigate the performance of a Wilcox test when making the
-comparison for increasingly larger amounts of coverage. The Wilcox
-test is general and robust and does not depend on a particular form of
-the distribution. Where site-wise statistical testing becomes more
-subtle is the independence assumption between sites (i.e., position 10
-and 11 contain a large number of common reads) as well as the
-independence assumption within molecule. Both of these assumptions
-need to be addressed when correcting for multiple testing. 
+have different signal strengths and effect sizes. Below we investigate
+the performance of a Wilcox test when making the comparison for
+increasingly larger amounts of coverage. The Wilcox test is general
+and robust and does not depend on a particular form of the
+distribution. Where site-wise statistical testing becomes more subtle
+is the independence assumption between sites (i.e., position 10 and 11
+contain a large number of common reads) as well as the independence
+assumption within molecule. Both of these assumptions need to be
+addressed when correcting for multiple testing.
 
 <<TestPositions, eval=TRUE, echo=FALSE>>=
 COVGS <- c(c10 = 10, c50 = 50, c100 = 100, c500 = 500, c1000 = 1000)
@@ -777,8 +770,9 @@ testResults <- lapply(cmpH5s[1:4], function(tH5) {
 <<fig=TRUE,results=hide,echo=FALSE>>=
 plotResult("2x_6mA")
 @ 
-\caption{Here we plot the $-\log_{10}$ p-values from the Wilcox test
-  for increasing levels of coverage for the 2x\_6mA modified template.}
+\caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
+  p-values from the Wilcox test for increasing levels of coverage for
+  the 2x\_6mA modified template.}
 \end{figure}
 
 \begin{figure}[H]
@@ -786,8 +780,9 @@ plotResult("2x_6mA")
 <<fig=TRUE,results=hide,echo=FALSE>>=
 plotResult("2x_4mC")
 @ 
-\caption{Here we plot the $-\log_{10}$ p-values from the Wilcox test
-  for increasing levels of coverage for the 2x\_4mC modified template.}
+\caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
+  p-values from the Wilcox test for increasing levels of coverage for
+  the 2x\_4mC modified template.}
 \end{figure}
 
 \begin{figure}[H]
@@ -795,8 +790,9 @@ plotResult("2x_4mC")
 <<fig=TRUE,results=hide,echo=FALSE>>=
 plotResult("2x_5hmC")
 @ 
-\caption{Here we plot the $-\log_{10}$ p-values from the Wilcox test
-  for increasing levels of coverage for the 2x\_5hmC modified template.}
+\caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
+  p-values from the Wilcox test for increasing levels of coverage for
+  the 2x\_5hmC modified template.}
 \end{figure}
 
 \begin{figure}[H]
@@ -804,8 +800,9 @@ plotResult("2x_5hmC")
 <<fig=TRUE,results=hide,echo=FALSE>>=
 plotResult("2x_5mC")
 @ 
-\caption{Here we plot the $-\log_{10}$ p-values from the Wilcox test
-  for increasing levels of coverage for the 2x\_5mC modified template.}
+\caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
+  p-values from the Wilcox test for increasing levels of coverage for
+  the 2x\_5mC modified template.}
 \end{figure}
 
 \subsection{ROC Analysis}
@@ -817,8 +814,8 @@ modification. The different tests that we employ are three related
 tests where each position is tested independently of the other
 positions. In general, as we can see from the $-\log_{10}$ p-values by
 position plots, the effect of a modification alters the IPD
-distribution in nearby bases. More sophisticated tests should take
-this into account.
+distribution in nearby bases. More sophisticated tests can take
+this into account in the future.
 <<DoDifferentTestProcedures, eval=TRUE, echo=FALSE>>=
 doAcrossProcedures <- function(cmpH5) {
   trimmedSlog <- function(x, trim = .975, alpha = 1/100) {
@@ -870,7 +867,7 @@ tmp <- pbutils::collapse(tmp)
 tmp$L2 <- factor(as.character(tmp$L2), c("c10", "c50", "c100", "c500", "c1000"))
 tmp$L3 <- factor(as.character(tmp$L3), names(modifications))
 show(ggplot(tmp, aes(x = as.numeric(FPR), y = as.numeric(TPR), color = L1)) + facet_grid(L3 ~ L2) + 
-     geom_line(lwd = 1))
+     geom_line(lwd = 1) + xlab("FPR") + ylab("TPR") + opts(axis.text.x = theme_text(size = 10, angle = 90, hjust = 1)))
 @ 
 \caption{{\em ROC Curves} - Here we plot ROC curves for the three
 different testing procedures faceted by coverage and modification
@@ -882,24 +879,24 @@ distribution.
 }
 \end{figure}
 As we can see, the differing test procedures do not produce
-dramatically different results. Indeed, we already knew we would
-produce false positives in the case of the 5mC modification as its
-effect on the IPD occurs three bases downstream. In any case, we can
+dramatically different results. The false positives in the case of the
+5mC modification are to be expected with this simple analytical model
+as its effect on the IPD occurs three bases downstream.  Future
+improvements to the analysis can take this effect into account. We can
 see that at sufficient coverage our false positive/true positive
-tradeoff is quite good for 5hmC, 4mC, and 6mA
-modifications.
+tradeoff is quite good for 5hmC, 4mC, and 6mA modifications.
 
 \subsection{Statistical Testing in Lambda DNA}
 <<echo=FALSE>>=
 cmpH5s <- lapply(Sys.glob("../Data/Lambda/*/data/aligned_reads.cmp.h5"), PacBioCmpH5)
 names(cmpH5s) <- sapply(cmpH5s, function(h) basename(dirname(dirname(h@fileName))))
 @ 
-As mentioned previously, a much more realistic dataset is the lambda
-dataset where we have 4 distinct conditions (Table
-\ref{tbl:lambda}). In this context, we have both a DAM+ and a DAM-
-condition which we can compare as well as their corresponding WGA
-vs. Native preparations. For simplicity, we can compare DAM+ and DAM-
-and focus on GATC methylation sites as our true positives.
+A dataset from a biological sample is the lambda dataset where we have
+4 distinct conditions (Table \ref{tbl:lambda}). In this context, we
+have both a DAM+ and a DAM- condition which we can compare as well as
+their corresponding native vs. WGA preparations. For simplicity, we
+can compare DAM+ and DAM- and focus on GATC methylation sites as our
+true positives.
 
 For this analysis, we will need to use the Biostrings package to
 determine where the GATC sites are in the genome. As an example we can
@@ -922,27 +919,22 @@ gatcExample <- pbutils::collapse(lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_na
   \centering
 <<fig=TRUE,results=hide,echo=FALSE>>=
 show(ggplot(gatcExample, aes(x = factor(position), y = elt, color = L1)) + geom_boxplot() + 
-     facet_wrap(~ strand) + scale_y_log10())
+     facet_wrap(~ strand) + scale_y_log10() + xlab("Position") + ylab("IPD"))
 @ 
 \caption{{\em GATC modification} - At this particular GATC
   modification, we can see that there is a strong signal of the
   modification and the reference position depends on the strand. This
   indeed makes sense as the strand we report means that we had to
   reverse complement the reference sequence to match the incorporated
-  bases. Said another way, the template was the forward strand of the
-  reference in this instance. 
+  bases.
 }
 \end{figure}
 
-\section{Conclusion}
-This document attempts to provide a user with an overview of PacBio
-data and APIs which support performing Kinetics analyses. This
-document is an attempt to present the analyst with a starting point
-for their kinetics analyses using Pacific Biosciences data. This
-document is a ``live'' document in the sense that we will be updating
-the tools presented here for more complicated analyses. For the user
-who wishes to process their data in the most simplistic fashion, we
-provide the following utility:
+Finally, we wrap all this up into one function that users can use to
+generate a ``top table'' similar to that generated by the other
+packages that are common in the arena of differential expression. This
+table provides useful summary statistics and can be analyzed directly
+to determine which bases are most probably modified in a given sample.
 <<echo=TRUE, eval=TRUE>>=
 topTable <- makeTopTable(cmpH5s[["6mA_dam+_native"]], cmpH5s[["6mA_dam-_native"]], 
                          start = 1, end = 5000)
@@ -965,18 +957,28 @@ abline(v = start(matches) + 1)
   positions in the genome.  }
 \end{figure}
 
-\subsection{Next Steps}
-As one can see from this document there are a number of enhancements
-that can be conceived of in the two-sample comparison case. First, one
-might prefer a permutation test when comparing the native vs. WGA
-samples. In the ``utils.R'' file there exists an example of such a
-procedure. One might prefer an empirical Bayes approach when the
-number of reads is low. Finally, one might wish to investigate
-whether taking into account the modification signature rather than
-just the individual IPD provides a substantially more powerful test
-than just the individual position. 
+\section{Conclusion}
+This document attempts to provide a user with an overview of PacBio
+data and APIs which support performing Kinetics analyses. This
+document is an attempt to present the analyst with a starting point
+for their kinetics analyses using Pacific Biosciences data. This
+document is a ``live'' document in the sense that we will be updating
+the tools presented here for more complicated analyses.
 
-\subsection{Session Info}
+There are a number of enhancements that can be conceived of in the
+two-sample comparison case. First, one might prefer a permutation test
+when comparing the native vs. WGA samples. In the ``utils.R'' file
+there exists an example of such a procedure. One might prefer an
+empirical Bayes approach when the number of reads is low. Finally, one
+might wish to investigate whether taking into account the modification
+signature rather than just the individual IPD provides a substantially
+more powerful test than just the individual position. We look forward
+to work with the bioinformatics community to develop implementations
+of these and other improvements.
+\appendix
+\section{Session Info}
+Here we give information about the version of R and installed packages
+used to generate this document. 
 <<echo=TRUE>>=
 sessionInfo()
 @ 
