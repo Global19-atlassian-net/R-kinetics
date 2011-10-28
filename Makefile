@@ -4,7 +4,7 @@
 
 analysis-build : download-data Src/analysis.pdf
 
-Src/analysis.pdf : Src/analysis.Rnw
+Src/analysis.pdf : Src/analysis.Rnw download-data
 	cd Src && make && cp analysis.pdf ../
 
 analysis-clean:
