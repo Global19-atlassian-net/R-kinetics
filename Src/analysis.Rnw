@@ -310,7 +310,8 @@ them).
 \begin{figure}[H]
   \centering
 <<fig=TRUE, echo=FALSE, results=hide>>=
-plotIPDForReads(cmpH5, idx = 1:100, range = c(40, 50), maxReads = 5, matches = FALSE)
+plotIPDForReads(cmpH5, idx = 1:100, range = c(40, 50), maxReads = 5, 
+                matches = FALSE)
 @ 
 \caption{{\em Trace Schematic} - Here we plot ``trace'' views directly
   from the cmp.h5 file. The presence of random
@@ -383,7 +384,7 @@ show(ggplot(melt(l), aes(x = L2, y = value, color = L1)) + geom_boxplot(outlier.
 \caption{{\em IPD and PulseWidth By Base} - Here we plot the IPD and
   PulseWidth distributions stratified by the base being
   incorporated. There is a base effect on IPD, i.e., which base is
-  incorporated changes the kinetic behavior of the enzyme.  
+  incorporated changes the kinetic behavior of the enzyme. 
 }
 \end{figure}
 \setkeys{Gin}{width=0.8\textwidth}
@@ -448,10 +449,10 @@ show(ggplot(byPositionAndStrandPW,
      geom_line() + ylab("Median Pulse Width"))
 @ 
 }
-  \caption{{\em IPD and PulseWidth by Strand and Position} - Here we plot the median of the IPD
-    distribution conditioned on both strand and position. We can see the
-    presence of strong position and strand effects.
-  }
+  \caption{{\em IPD and PulseWidth by Strand and Position} - Here we
+    plot the median of the IPD distribution conditioned on both strand
+    and position. We can see the presence of strong position and
+    strand effects.  }
 \end{figure}
 \setkeys{Gin}{width=0.8\textwidth}
 
@@ -683,7 +684,8 @@ lapply(names(ipdRatios), function(a) {
   different signatures for a given modification, with 4-mC having
   characteristic signals at the modified position, 5-mC and 5-hmC at 2
   and 6 bases downstream of the position, and 6-mA at the modified
-  position and 5 bases downstream.  }\label{fig:ipdratios}
+  position and 5 bases downstream. Known modification sites are
+  highlighted in grey. }\label{fig:ipdratios}
 \end{figure}
 
 \subsection{Testing by Coverage}
@@ -772,7 +774,8 @@ plotResult("2x_6mA")
 @ 
 \caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
   p-values from the Wilcox test for increasing levels of coverage for
-  the 2x\_6mA modified template.}
+  the 2x\_6mA modified template. Known modification sites are
+  labeled with a grey vertical line.}
 \end{figure}
 
 \begin{figure}[H]
@@ -782,7 +785,8 @@ plotResult("2x_4mC")
 @ 
 \caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
   p-values from the Wilcox test for increasing levels of coverage for
-  the 2x\_4mC modified template.}
+  the 2x\_4mC modified template. Known modification sites are
+  labeled with a grey vertical line.}
 \end{figure}
 
 \begin{figure}[H]
@@ -792,7 +796,8 @@ plotResult("2x_5hmC")
 @ 
 \caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
   p-values from the Wilcox test for increasing levels of coverage for
-  the 2x\_5hmC modified template.}
+  the 2x\_5hmC modified template. Known modification sites are
+  labeled with a grey vertical line.}
 \end{figure}
 
 \begin{figure}[H]
@@ -802,7 +807,8 @@ plotResult("2x_5mC")
 @ 
 \caption{{\em Tests by Position} -- Here we plot the $-\log_{10}$
   p-values from the Wilcox test for increasing levels of coverage for
-  the 2x\_5mC modified template.}
+  the 2x\_5mC modified template. Known modification sites are
+  labeled with a grey vertical line.}
 \end{figure}
 
 \subsection{ROC Analysis}
@@ -907,13 +913,39 @@ if (! require(Biostrings)) {
 }
 lambda <- read.DNAStringSet("../ReferenceRepository/lambdaNEB/lambdaNEB.fa")[[1]]
 matches <- matchPattern("GATC", lambda)
+gatcStart <- start(matches)[5]
+gatcEnd <- end(matches)[5]
 gatcExample <- pbutils::collapse(lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_native")], function(cmp) {
-  s <- start(matches)[1]
-  e <- end(matches)[1]
-  subset(getByTemplatePosition(cmp, idx = getReadsInRange(cmp, 1, s, e), f = getIPD),
-         position >= s & position <= e & read == ref)
+  subset(getByTemplatePosition(cmp, idx = getReadsInRange(cmp, 1, gatcStart, gatcEnd), f = getIPD),
+         position >= gatcStart & position <= gatcEnd & read == ref)
 }))
 @ 
+
+\setkeys{Gin}{width=0.5\textwidth}
+\begin{figure}[H]
+  \centering
+  \subfloat[][]{
+<<echo=FALSE,fig=TRUE>>=
+plotIPDForReads(cmpH5s[["6mA_dam+_native"]], 
+                idx = getReadsInRange(cmpH5s[["6mA_dam+_native"]], 1, gatcStart-10, gatcEnd+10), 
+                range = c(gatcStart-3, gatcEnd+4), maxReads = 5, matches = FALSE)
+@
+}
+  \subfloat[][]{
+<<echo=FALSE,fig=TRUE>>=
+plotIPDForReads(cmpH5s[["6mA_dam+_native"]], 
+                idx = getReadsInRange(cmpH5s[["6mA_dam-_native"]], 1, gatcStart-10, gatcEnd+10), 
+                range = c(gatcStart-3, gatcEnd+4), maxReads = 5, matches = FALSE)
+@
+}
+  \caption{{\em Trace Schematic} -  Here we plot ``trace'' views directly
+    comparing the the IPD measurments for 5 reads from the modified
+    sample and 5 reads from the control sample. Even at the level of
+    single reads, we can see that the modified sample has longer IPDs
+    at the modified incorporation.
+  }
+  \end{figure}
+\setkeys{Gin}{width=0.8\textwidth}
 
 \begin{figure}[H]
   \centering
