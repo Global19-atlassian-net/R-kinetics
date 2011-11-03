@@ -1,38 +1,40 @@
 ### R code from vignette source 'analysis.Rnw'
+### Encoding: UTF-8
 
 ###################################################
-### code chunk number 1: analysis.Rnw:165-170
+### code chunk number 1: analysis.Rnw:159-165
 ###################################################
 require(pbh5)
 require(pbutils)
 require(xtable)
 require(ggplot2)
+require(Biostrings)
 source("utils.R")
 
 
 ###################################################
-### code chunk number 2: analysis.Rnw:194-196
+### code chunk number 2: analysis.Rnw:189-191
 ###################################################
 makeSummaryTable("Synthetic", caption = "Summary of synthetically methylated datasets used in this document.",
                  label = "tbl:synthetic")
 
 
 ###################################################
-### code chunk number 3: analysis.Rnw:204-206
+### code chunk number 3: analysis.Rnw:199-201
 ###################################################
 makeSummaryTable("Lambda", caption = "Summary of lambda datasets used in this document.",
                  label = "tbl:lambda")
 
 
 ###################################################
-### code chunk number 4: analysis.Rnw:238-240
+### code chunk number 4: analysis.Rnw:233-235
 ###################################################
 cmpH5 <- PacBioCmpH5("../Data/Lambda/6mA_dam+_native/data/aligned_reads.cmp.h5") 
 cmpH5
 
 
 ###################################################
-### code chunk number 5: analysis.Rnw:246-249
+### code chunk number 5: analysis.Rnw:241-244
 ###################################################
 group <- "/ref000001/m110818_122604_42141_c100129202555500000315043109121114_s1_p0"
 g <- getH5Group(cmpH5, group)
@@ -40,20 +42,20 @@ ls(g)
 
 
 ###################################################
-### code chunk number 6: analysis.Rnw:267-268
+### code chunk number 6: analysis.Rnw:262-263
 ###################################################
 head(alnIndex(cmpH5), 2)
 
 
 ###################################################
-### code chunk number 7: analysis.Rnw:273-275
+### code chunk number 7: analysis.Rnw:268-270
 ###################################################
 alns <- getAlignments(cmpH5, idx = c(1, 200, 3))
 lapply(alns, head, n = 2)
 
 
 ###################################################
-### code chunk number 8: analysis.Rnw:312-314
+### code chunk number 8: analysis.Rnw:309-311
 ###################################################
 plotIPDForReads(cmpH5, idx = 1:100, range = c(40, 50), maxReads = 5, 
                 matches = FALSE)
@@ -67,7 +69,7 @@ names(cmpH5s) <- sapply(cmpH5s, function(h) basename(dirname(dirname(h@fileName)
 
 
 ###################################################
-### code chunk number 10: analysis.Rnw:333-337
+### code chunk number 10: analysis.Rnw:330-334
 ###################################################
 plotDensity(lapply(cmpH5s, function(cmpH5) {
   v <- getIPD(cmpH5, sample(1:nrow(cmpH5), size = 100))
@@ -76,7 +78,7 @@ plotDensity(lapply(cmpH5s, function(cmpH5) {
 
 
 ###################################################
-### code chunk number 11: analysis.Rnw:341-345
+### code chunk number 11: analysis.Rnw:338-342
 ###################################################
 plotDensity(lapply(cmpH5s, function(cmpH5) {
   v <- getPulseWidth(cmpH5, sample(1:nrow(cmpH5), size = 100))
@@ -85,7 +87,7 @@ plotDensity(lapply(cmpH5s, function(cmpH5) {
 
 
 ###################################################
-### code chunk number 12: analysis.Rnw:359-368
+### code chunk number 12: analysis.Rnw:356-365
 ###################################################
 l <- lapply(cmpH5s, function(cmpH5) {
   w <- sample(1:nrow(cmpH5), size = 1000)
@@ -99,7 +101,7 @@ show(ggplot(melt(l), aes(x = L2, y = value, color = L1)) + geom_boxplot(outlier.
 
 
 ###################################################
-### code chunk number 13: analysis.Rnw:372-381
+### code chunk number 13: analysis.Rnw:369-378
 ###################################################
 l <- lapply(cmpH5s, function(cmpH5) {
   w <- sample(1:nrow(cmpH5), size = 1000)
@@ -113,26 +115,26 @@ show(ggplot(melt(l), aes(x = L2, y = value, color = L1)) + geom_boxplot(outlier.
 
 
 ###################################################
-### code chunk number 14: analysis.Rnw:398-399
+### code chunk number 14: analysis.Rnw:395-396
 ###################################################
 head(getByTemplatePosition(cmpH5, idx = 1:2, f = getIPD))
 
 
 ###################################################
-### code chunk number 15: analysis.Rnw:405-406
+### code chunk number 15: analysis.Rnw:402-403
 ###################################################
 head(makeContextDataTable(cmpH5, idx = 1:2, up = 2, down = 2))
 
 
 ###################################################
-### code chunk number 16: analysis.Rnw:409-411
+### code chunk number 16: analysis.Rnw:406-408
 ###################################################
 s <- summarizeByContext(cmpH5, idx = 1:100, up = 1, down = 1, statF = getPulseWidth)
 head(s)
 
 
 ###################################################
-### code chunk number 17: analysis.Rnw:420-431
+### code chunk number 17: analysis.Rnw:417-428
 ###################################################
 getByPositionAndStrand <- function(f = getIPD, s = 20000, e = 20025) {
   pbutils::collapse(lapply(cmpH5s, function(cmpH5) {
@@ -148,7 +150,7 @@ byPositionAndStrandPW <- getByPositionAndStrand(f=getPulseWidth)
 
 
 ###################################################
-### code chunk number 18: analysis.Rnw:438-441
+### code chunk number 18: analysis.Rnw:435-438
 ###################################################
 show(ggplot(byPositionAndStrandIPD, aes(x = position, y = V1, color = factor(strand), lty = L1, 
                                         group = factor(strand):factor(L1))) +
@@ -156,7 +158,7 @@ show(ggplot(byPositionAndStrandIPD, aes(x = position, y = V1, color = factor(str
 
 
 ###################################################
-### code chunk number 19: analysis.Rnw:445-449
+### code chunk number 19: analysis.Rnw:442-446
 ###################################################
 show(ggplot(byPositionAndStrandPW, 
             aes(x = position, y = V1, color = factor(strand), lty = L1, 
@@ -165,7 +167,7 @@ show(ggplot(byPositionAndStrandPW,
 
 
 ###################################################
-### code chunk number 20: analysis.Rnw:479-482
+### code chunk number 20: analysis.Rnw:476-479
 ###################################################
 getTemplateStrand(cmpH5)[1:10]
 tmp <- getByTemplatePosition(cmpH5, idx = 1:2)
@@ -181,7 +183,7 @@ head(tmp[order(tmp$elt),])
 
 
 ###################################################
-### code chunk number 22: analysis.Rnw:503-510
+### code chunk number 22: analysis.Rnw:504-511
 ###################################################
 contextTable <- associateWithContext(cmpH5, idx = sample(1:nrow(cmpH5), size = 1000), f = getIPD, 
                                      collapse = T, useReference = T, up = 1, down = 1)
@@ -193,17 +195,18 @@ legend("topleft", c("A","C","G","T"), fill = 1:4, bg = "white")
 
 
 ###################################################
-### code chunk number 23: analysis.Rnw:522-535
+### code chunk number 23: analysis.Rnw:528-542
 ###################################################
 par(mfrow=c(2,1), mar = c(3, 5, 1, 1))
 ## This is so that the points don't collide on the plot, somewhat lazy.
 set.seed(10)
-lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_native")], function(cmp) {
+lapply(c("6mA_dam+_native", "6mA_dam-_native"), function(nm) {
+  cmp <- cmpH5s[[nm]]
   tmp <- associateWithContext(cmp, idx = sort(sample(1:nrow(cmp), size = 5000)), 
                               f = getIPD, collapse = T, useReference = T, up = 2, down = 2)
   contextMedians <- tapply(tmp$elt, tmp$context, median, na.rm = T)
   plot(x <- 1:length(contextMedians), y <- contextMedians, pch = 16, 
-       ylim = c(0, .85), xlab = "Context", xaxt = 'n', ylab = "Median")
+       ylim = c(0, .85), xlab = "Context", xaxt = 'n', ylab = "Median IPD", main = nm)
   w <- grep("^GATC", names(y))
   text(x[w], y[w], names(y)[w], col = c("darkblue", "darkred", "darkgreen", "orange"), 
        cex = 1, pos = c(2,4,2,4))
@@ -211,7 +214,7 @@ lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_native")], function(cmp) {
 
 
 ###################################################
-### code chunk number 24: analysis.Rnw:583-608
+### code chunk number 24: analysis.Rnw:591-616
 ###################################################
 cmpH5s <- lapply(Sys.glob("../Data/Synthetic/*/data/aligned_reads.cmp.h5"), PacBioCmpH5)
 names(cmpH5s) <- sapply(cmpH5s, function(h) basename(dirname(dirname(h@fileName))))
@@ -241,26 +244,26 @@ distributionPlot <- function(positions, nm) {
 
 
 ###################################################
-### code chunk number 25: analysis.Rnw:612-614
+### code chunk number 25: analysis.Rnw:620-622
 ###################################################
 matplot(sapply(cmpH5s, getCoverageInRange, refSeq = 1), type = 'l', ylab = "coverage", xlab = "position")
 legend("topleft", names(cmpH5s), fill = 1:length(cmpH5s), bg = 'white')
 
 
 ###################################################
-### code chunk number 26: analysis.Rnw:624-625
+### code chunk number 26: analysis.Rnw:632-633
 ###################################################
 distributionPlot(c(modifications[["2x_6mA"]][1], 40), "2x_6mA")
 
 
 ###################################################
-### code chunk number 27: analysis.Rnw:636-637
+### code chunk number 27: analysis.Rnw:648-649
 ###################################################
 distributionPlot(c(modifications[["2x_5mC"]][1], 40), "2x_5mC")
 
 
 ###################################################
-### code chunk number 28: analysis.Rnw:661-679
+### code chunk number 28: analysis.Rnw:679-697
 ###################################################
 getIPDRatios <- function() {
   getIPDMeanByPosition <- function(cmpH5) {
@@ -350,25 +353,25 @@ testResults <- lapply(cmpH5s[1:4], function(tH5) {
 
 
 ###################################################
-### code chunk number 30: analysis.Rnw:772-773
+### code chunk number 30: analysis.Rnw:790-791
 ###################################################
 plotResult("2x_6mA")
 
 
 ###################################################
-### code chunk number 31: analysis.Rnw:783-784
+### code chunk number 31: analysis.Rnw:801-802
 ###################################################
 plotResult("2x_4mC")
 
 
 ###################################################
-### code chunk number 32: analysis.Rnw:794-795
+### code chunk number 32: analysis.Rnw:812-813
 ###################################################
 plotResult("2x_5hmC")
 
 
 ###################################################
-### code chunk number 33: analysis.Rnw:805-806
+### code chunk number 33: analysis.Rnw:823-824
 ###################################################
 plotResult("2x_5mC")
 
@@ -419,7 +422,7 @@ plotROC <- function(nm) {
 
 
 ###################################################
-### code chunk number 35: analysis.Rnw:869-876
+### code chunk number 35: analysis.Rnw:887-895
 ###################################################
 tmp <- lapply(names(byTestFunction), plotROC)
 names(tmp) <- names(byTestFunction)
@@ -427,22 +430,20 @@ tmp <- pbutils::collapse(tmp)
 tmp$L2 <- factor(as.character(tmp$L2), c("c10", "c50", "c100", "c500", "c1000"))
 tmp$L3 <- factor(as.character(tmp$L3), names(modifications))
 show(ggplot(tmp, aes(x = as.numeric(FPR), y = as.numeric(TPR), color = L1)) + facet_grid(L3 ~ L2) + 
-     geom_line(lwd = 1) + xlab("FPR") + ylab("TPR") + opts(axis.text.x = theme_text(size = 10, angle = 90, hjust = 1)))
+     geom_line(lwd = 1) + xlab("False-positive Rate") + ylab("True-positive Rate") + 
+     opts(axis.text.x = theme_text(size = 10, angle = 90, hjust = 1)))
 
 
 ###################################################
-### code chunk number 36: analysis.Rnw:896-898
+### code chunk number 36: analysis.Rnw:915-917
 ###################################################
 cmpH5s <- lapply(Sys.glob("../Data/Lambda/*/data/aligned_reads.cmp.h5"), PacBioCmpH5)
 names(cmpH5s) <- sapply(cmpH5s, function(h) basename(dirname(dirname(h@fileName))))
 
 
 ###################################################
-### code chunk number 37: analysis.Rnw:910-921
+### code chunk number 37: analysis.Rnw:929-937
 ###################################################
-if (! require(Biostrings)) {
-  stop("Unable to execute Lambda testing examples without Biostrings package.")
-}
 lambda <- read.DNAStringSet("../ReferenceRepository/lambdaNEB/lambdaNEB.fa")[[1]]
 matches <- matchPattern("GATC", lambda)
 gatcStart <- start(matches)[5]
@@ -454,7 +455,7 @@ gatcExample <- pbutils::collapse(lapply(cmpH5s[c("6mA_dam+_native", "6mA_dam-_na
 
 
 ###################################################
-### code chunk number 38: analysis.Rnw:928-931
+### code chunk number 38: analysis.Rnw:944-947
 ###################################################
 plotIPDForReads(cmpH5s[["6mA_dam+_native"]], 
                 idx = getReadsInRange(cmpH5s[["6mA_dam+_native"]], 1, gatcStart-10, gatcEnd+10), 
@@ -462,7 +463,7 @@ plotIPDForReads(cmpH5s[["6mA_dam+_native"]],
 
 
 ###################################################
-### code chunk number 39: analysis.Rnw:935-938
+### code chunk number 39: analysis.Rnw:951-954
 ###################################################
 plotIPDForReads(cmpH5s[["6mA_dam+_native"]], 
                 idx = getReadsInRange(cmpH5s[["6mA_dam-_native"]], 1, gatcStart-10, gatcEnd+10), 
@@ -470,14 +471,15 @@ plotIPDForReads(cmpH5s[["6mA_dam+_native"]],
 
 
 ###################################################
-### code chunk number 40: analysis.Rnw:952-954
+### code chunk number 40: analysis.Rnw:968-971
 ###################################################
+gatcExample$strand <- ifelse(gatcExample$strand == 0, "Strand=0", "Strand=1")
 show(ggplot(gatcExample, aes(x = factor(position), y = elt, color = L1)) + geom_boxplot() + 
      facet_wrap(~ strand) + scale_y_log10() + xlab("Position") + ylab("IPD"))
 
 
 ###################################################
-### code chunk number 41: analysis.Rnw:970-973
+### code chunk number 41: MakeTopTable
 ###################################################
 topTable <- makeTopTable(cmpH5s[["6mA_dam+_native"]], cmpH5s[["6mA_dam-_native"]], 
                          start = 1, end = 5000)
@@ -485,7 +487,7 @@ head(topTable)
 
 
 ###################################################
-### code chunk number 42: analysis.Rnw:981-984
+### code chunk number 42: analysis.Rnw:1002-1005
 ###################################################
 plot(topTable$position, -log10(topTable$fdr), pch = 16, ylab = "-log10(FDR adjusted p.values)", 
      xlab = "position", main = "-log10 FDR adjusted p.values")
@@ -493,7 +495,7 @@ abline(v = start(matches) + 1)
 
 
 ###################################################
-### code chunk number 43: analysis.Rnw:1014-1015
+### code chunk number 43: analysis.Rnw:1051-1052
 ###################################################
 sessionInfo()
 
