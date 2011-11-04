@@ -45,6 +45,10 @@
 \usepackage{float}
 \usepackage{subfig}
 \usepackage{hyperref}
+
+%%%%%%%%%%%%%%%%%%%%%%%% hyperref %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\hypersetup{pdfborder = {0 0 0}}
+
 %%%%%%%%%%%%%%%%%%%%%%%% Adapted from Sweave %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \DefineVerbatimEnvironment{Rcode}{Verbatim}{fontshape=sl, frame=single, 
   framesep=2mm, fontsize=\small, baselinestretch=.5}
@@ -109,7 +113,7 @@
 \maketitle
 \tableofcontents
 \begin{abstract}
-  This documents describes a programing interface to Pacific
+  This document describes a programing interface to Pacific
   Biosciences compare H5 files. These files provide additional data
   beyond basecalls and quality values obtained during a sequencing
   run. The data contained in compare H5 files can be used to discover
@@ -134,8 +138,8 @@ interpulse duration (IPD), present characteristic patterns in response
 to a wide variety of base modifications. The kinetic measurements that
 we discuss in this document include IPD and pulse width.  More
 information about IPD and its utility in base modification detection
-can be found in Pacific Biosciences’ white paper titled “DNA
-Modification Detection using Single Molecule Real-Time Sequencing”.
+can be found in Pacific Biosciences' white paper titled ``DNA
+Modification Detection using Single Molecule Real-Time Sequencing''. 
 
 In this document we demonstrate how to perform DNA modification
 detection using the suite of R packages developed and used at Pacific
@@ -185,7 +189,9 @@ phage. For the synthetically modified data, we have a 5 identical
 (from a nucleotide sequence perspective) templates, of which four
 templates have DNA base modifications at particular sites. One is a
 control template which will be used in comparison to each treatment
-template.
+template.\footnote{All data is available for download at:\\
+\myurl{http://www.pacificbiosciences.com/devnet/files/how-tos/dna-modification/1.0.3/Kinetics\_Data\_2011-09-26.tar.gz}}
+
 <<echo=FALSE,results=tex>>=
 makeSummaryTable("Synthetic", caption = "Summary of synthetically methylated datasets used in this document.",
                  label = "tbl:synthetic")
@@ -202,16 +208,17 @@ makeSummaryTable("Lambda", caption = "Summary of lambda datasets used in this do
 @ 
 
 \section{Exploring the Data}
-SMRT(\textsuperscript{\textregistered}) sequencing provides a rich set of information
-beyond that of traditional sequencing platforms. Specifically, here we
-focus on information about the kinetic behavior of the polymerase at
-specific positions in the reference sequence. We first examine
-high-level summaries of the data, such as yield, read length, and
-accuracy. We will focus on the Lambda data for some of the major
-exploratory work because it provides a larger number of sequencing
-contexts to investigate. First, we describe some of the major
-components of the \PL{R} API which we will use throughout this
-document to analyze the two different modification datasets.
+SMRT\textsuperscript{\textregistered} sequencing provides a rich set
+of information beyond that of traditional sequencing
+platforms. Specifically, here we focus on information about the
+kinetic behavior of the polymerase at specific positions in the
+reference sequence. We first examine high-level summaries of the data,
+such as yield, read length, and accuracy. We will focus on the Lambda
+data for some of the major exploratory work because it provides a
+larger number of sequencing contexts to investigate. First, we
+describe some of the major components of the \PL{R} API which we will
+use throughout this document to analyze the two different modification
+datasets.
 
 \subsection{Working with the Compare H5 File}
 The {\em cmp.h5} file (pronounced comp H5 or compare H5) provides a
@@ -310,7 +317,7 @@ them).
 plotIPDForReads(cmpH5, idx = 1:100, range = c(40, 50), maxReads = 5, 
                 matches = FALSE)
 @ 
-\caption{{\em Pulse Schematic} - Here we plot ``trace'' views directly
+\caption{{\em Pulse Schematic} - Here we plot ``pulse'' views directly
   from the cmp.h5 file. The presence of random
   insertion/deletion/mismatch errors adds additional complexity to
   correctly assign kinetic parameters to a particular incorporation
@@ -604,7 +611,7 @@ distributionPlot <- function(positions, nm) {
              position == p & strand == 0 & read == ref)$elt
     })
   }
-  par(mfrow=c(length(positions), 2), mar = c(5, 5, 4, 1))
+  par(mfrow=c(length(positions), 2), mar = c(4, 4, 2, 1))
   lapply(positions, function(z) {
     title <- paste("Position:", z)
     lst <- lapply(getIPDForPosition(z), function(k) log10(k+1/76))
@@ -622,9 +629,7 @@ matplot(sapply(cmpH5s, getCoverageInRange, refSeq = 1), type = 'l', ylab = "cove
 legend("topleft", names(cmpH5s), fill = 1:length(cmpH5s), bg = 'white')
 @ 
 \caption{{\em Coverage Across Synthetic Reference} - Here we plot the
-  ``pileup'' coverage across the synthetic template. We can see the
-  extreme dropoff of coverage towards the ends of the sequence.
-}\label{fig:syntheticcoverage}
+  ``pileup'' coverage across the synthetic template.}
 \end{figure}
 
 \begin{figure}[H]
@@ -778,7 +783,8 @@ plotResult <- function(nm, g = function(z) -log10(z$p.value), ...) {
     plot(positions, y, xlab = "", ylab = "", 
          main = paste("-log10 p-values for coverage:", names(tp[[1]])[i], "(", nm, ")"),
          pch = 16, cex = 1.25)
-    abline(v = modifiedPositions, col = 'grey', lty = 3)
+    abline(v = modifiedPositions, col = 'grey', lwd = 4)
+    points(positions, y, pch = 16, cex = 1.25)
   })
 }
 testResults <- lapply(cmpH5s[1:4], function(tH5) {
@@ -838,8 +844,7 @@ modification. The different tests that we employ are three related
 tests where each position is tested independently of the other
 positions. In general, as we can see from the $-\log_{10}$ p-values by
 position plots, the effect of a modification alters the IPD
-distribution in nearby bases. More sophisticated tests can take this
-into account in the future.
+distribution in nearby bases.
 <<DoDifferentTestProcedures, eval=TRUE, echo=FALSE>>=
 doAcrossProcedures <- function(cmpH5) {
   trimmedSlog <- function(x, trim = .975, alpha = 1/100) {
@@ -923,9 +928,9 @@ their corresponding WGA vs. native preparations. For simplicity, we
 can compare DAM+ and DAM- and focus on GATC methylation sites as our
 true positives.
 
-For this analysis, we will need to use the Biostrings package to
-determine where the GATC sites are in the genome. As an example we can
-look at one position.
+For this analysis, we will use the Biostrings package to determine
+where the GATC sites are in the genome. As an example we can look at
+one position.
 <<echo=TRUE, results=hide>>=
 lambda <- read.DNAStringSet("../ReferenceRepository/lambdaNEB/lambdaNEB.fa")[[1]]
 matches <- matchPattern("GATC", lambda)
@@ -954,15 +959,15 @@ plotIPDForReads(cmpH5s[["6mA_dam+_native"]],
                 range = c(gatcStart-3, gatcEnd+4), maxReads = 5, matches = FALSE)
 @
 }
-  \caption{{\em Pulse Schematic} -  Here we plot ``trace'' views directly
+  \caption{{\em Pulse Schematic} -  Here we plot ``pulse'' views directly
     comparing the the IPD measurments for 5 reads from the modified
     sample and 5 reads from the control sample. Even at the level of
     single reads, we can see that the modified sample has longer IPDs
     at the modified incorporation.
   }
-  \end{figure}
-\setkeys{Gin}{width=0.8\textwidth}
+\end{figure}
 
+\setkeys{Gin}{width=0.8\textwidth}
 \begin{figure}[H]
   \centering
 <<fig=TRUE,results=hide,echo=FALSE>>=
@@ -978,8 +983,8 @@ show(ggplot(gatcExample, aes(x = factor(position), y = elt, color = L1)) + geom_
   bases. Here $Strand=0$ refers to a read which aligns to the forward strand
   of the reference with no reverse complementation and $Strand=1$ refers to
   a read which aligned to the reverse complement of the reference. In
-  this case, position 415 is a ``G'', 416 an ``A'', 417 a ``T'', and
-  418 a ``C'' in the reference FASTA. 
+  this case, position 2366 is a ``G'', 2367 an ``A'', 2368 a ``T'', and
+  2369 a ``C'' in the reference FASTA. 
 }
 \end{figure}
 
@@ -1011,12 +1016,11 @@ abline(v = start(matches) + 1)
 \end{figure}
 
 \section{Conclusion}
-This document attempts to provide a user with an overview of PacBio
-data and APIs which support performing Kinetics analyses. This
-document is an attempt to present the analyst with a starting point
-for their kinetics analyses using Pacific Biosciences data. This
-document is a ``live'' document in the sense that we will be updating
-the tools presented here for more complicated analyses.
+This document provides a user with an overview of PacBio data and
+programming interfaces to support Kinetics analyses. We present the
+analyst with a starting point for their kinetics. This document is a
+``live'' document in the sense that we will be updating the tools
+presented here to support more sophisticated analyses in the future.
 
 There are a number of enhancements that can be conceived of in the
 two-sample comparison case. First, one might prefer a permutation test
@@ -1031,8 +1035,8 @@ of these and other improvements.
 
 \clearpage
 \appendix
-\listoffigures
-\section{IPD Definition}
+% \listoffigures
+\section{IPD Definition}\label{section:IPD}
 Interpulse duration, IPD, is defined by a pulse-level dataset, i.e.,
 datasets stored in the bas.h5 file
 (PulseData/BaseCalls/PreBaseFrames). The PreBaseFrames dataset
