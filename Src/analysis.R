@@ -473,9 +473,9 @@ plotIPDForReads(cmpH5s[["6mA_dam+_native"]],
 ###################################################
 ### code chunk number 40: analysis.Rnw:973-976
 ###################################################
-gatcExample$strand <- ifelse(gatcExample$strand == 0, "Strand=0", "Strand=1")
+gatcExample$lstrand <- ifelse(gatcExample$strand == 0, "Strand=0", "Strand=1")
 show(ggplot(gatcExample, aes(x = factor(position), y = elt, color = L1)) + geom_boxplot() + 
-     facet_wrap(~ strand) + scale_y_log10() + xlab("Position") + ylab("IPD"))
+     facet_wrap(~ lstrand) + scale_y_log10() + xlab("Position") + ylab("IPD"))
 
 
 ###################################################
