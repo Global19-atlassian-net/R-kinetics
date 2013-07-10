@@ -165,6 +165,7 @@ require(pbh5)
 require(pbutils)
 require(xtable)
 require(ggplot2)
+require(reshape)
 require(Biostrings)
 source("utils.R")
 @ 
